@@ -2,7 +2,7 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 
-def main_menu_keyboard():
+def main_menu_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text='Бой')],
@@ -12,7 +12,7 @@ def main_menu_keyboard():
     )
 
 
-def shop_keyboard():
+def shop_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text='Контракты')],
@@ -23,7 +23,7 @@ def shop_keyboard():
     )
 
 
-def gods_keyboard():
+def gods_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text='Зевс', callback_data='god_zeus')],

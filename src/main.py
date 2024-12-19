@@ -11,7 +11,7 @@ from aiogram.filters import Command
 
 import src.infrastructure.keyboards.menu as kb
 from src.infrastructure.database.gods import gods
-from src.game.fight.pve.fight import router as fight_router
+from src.game.fight.pvp.fight import router as fight_router
 from src.main_env import storage
 
 

@@ -5,15 +5,15 @@ from aiogram.fsm.storage.base import StorageKey
 from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
+from src.domain.character.base_schema import Character
 from src.game.fight.states import FightStates
 from src.game.menu.states import MenuStates
+from src.infrastructure.keyboards.battle import skills_buttons
+from src.infrastructure.keyboards.menu import main_menu_keyboard
 from src.main_env import waiting_users, storage, pvp_rooms
 from src.infrastructure.bot import bot
 
 from src.domain.rooms.pvp_room import PVPRoom
-from src.domain.classes.adventurer import Adventurer
-from src.domain.classes.base_schema import Character
-
 
 router = Router()
 
@@ -38,12 +38,8 @@ async def fight_start(message: Message, state: FSMContext):
 
             await bot.send_message(waiting_users[0], text='бой найден, можете поговорить с противником')
             room = PVPRoom(
-                u1=user_1_id,
-                u2=user_2_id,
-                u1_class=Adventurer(Character()),
-                u2_class=Adventurer(Character()),
-                u1_status='waiting',
-                u2_status='waiting'
+                u1=Character(),
+                u2=Character(),
             )
 
             room_id = f'{user_1_id}_{user_2_id}'
@@ -58,9 +54,15 @@ async def fight_start(message: Message, state: FSMContext):
 
             await asyncio.sleep(15)
             await state.set_state(FightStates.move)
-            await state2.set_state(FightStates.waiting)
+            await state2.set_state(FightStates.move)
             await message.answer('время разговоров окончено')
             await bot.send_message(user_2_id, 'время разговоров окончено')
+
+            await message.answer('Выберите действие', reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+            await bot.send_message(user_2_id, 'Выберите действие', reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+
+
+
 
 
 @router.message(FightStates.starting)
@@ -80,10 +82,10 @@ async def conversation(message: Message, state: FSMContext):
     data = await state.get_data()
     room = pvp_rooms[data.get('room')]
 
-    if message.from_user.id != room.stats.u1:
-        await bot.send_message(room.stats.u1, message.text)
+    if message.from_user.id != room.u1.id:
+        await bot.send_message(room.u1.id, message.text)
     else:
-        await bot.send_message(room.stats.u2, message.text)
+        await bot.send_message(room.u2.id, message.text)
 
 
 # --------------------------------------------------------------------------------------------
@@ -91,6 +93,10 @@ async def conversation(message: Message, state: FSMContext):
 
 @router.message(FightStates.move)
 async def fight(message: Message, state: FSMContext):
-    pass
+    if message.text.lower() == 'сдаться':
+        await state.set_state(MenuStates.main_menu)
+        await message.answer('Вы сдались и вышли в меню', reply_markup=main_menu_keyboard())
+
+    manager = None
 
 

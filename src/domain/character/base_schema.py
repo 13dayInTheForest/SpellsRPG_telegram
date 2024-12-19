@@ -3,6 +3,9 @@ from typing import Optional
 
 
 class Character(BaseModel):
+    skills: list = ['Ебанем']
+    class_dev_name: str = 'vic'
+
     telegram_user_id: str = '67821449'
     name: str = 'test'
     avatar_prompt: str = ''

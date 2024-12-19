@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 
 from src.game.fight.states import FightStates
 from src.game.menu.states import MenuStates
-from src.main_env import waiting_users, rooms, storage
+from src.main_env import waiting_users, pvp_rooms, storage
 from src.infrastructure.bot import bot
 
 
@@ -30,7 +30,7 @@ async def fight_start(message: Message, state: FSMContext):
             ))
             user2 = waiting_users[0]
             await bot.send_message(waiting_users[0], text='бой найден, можете поговорить с противником')
-            rooms.extend([message.from_user.id, waiting_users[0]])
+            pvp_rooms.extend([message.from_user.id, waiting_users[0]])
             waiting_users.clear()
 
             await message.answer('бой найден, можете поговорить с противником')
@@ -57,7 +57,7 @@ async def wait(message: Message, state: FSMContext):
 
 @router.message(FightStates.conversation)
 async def conversation(message: Message):
-    if message.from_user.id != rooms[0]:
-        await bot.send_message(rooms[0], message.text)
+    if message.from_user.id != pvp_rooms[0]:
+        await bot.send_message(pvp_rooms[0], message.text)
     else:
-        await bot.send_message(rooms[1], message.text)
+        await bot.send_message(pvp_rooms[1], message.text)
