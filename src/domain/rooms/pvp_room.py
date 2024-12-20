@@ -1,12 +1,12 @@
 from src.domain.character.base_schema import Character
 from src.domain.rooms.interface import IRoom
-from src.domain.schemas import ResultsDTO, RoomsInfo
+from src.domain.schemas import ResultsDTO
 
 
 class PVPRoom(IRoom):
     def __init__(self,
-                 u1: Character,  # телеграм id 1 юзера
-                 u2: Character,  # телеграм id 2 юзера
+                 u1: Character,
+                 u2: Character,
                  ):
         self.u1 = u1
         self.u2 = u2
@@ -22,8 +22,8 @@ class PVPRoom(IRoom):
     """
 
     async def move(self, player_id: str, move_text: str) -> ResultsDTO:
-        if player_id not in (self.stats.u1, self.stats.u2):
-            return ResultsDTO(status=False, message='Ошибка! Попытка залезть не в свою комнату!')
+        if player_id not in (self.u1.telegram_id, self.u2.telegram_id):
+            return ResultsDTO(status=False, text='Ошибка! Попытка залезть не в свою комнату!')
 
 
 

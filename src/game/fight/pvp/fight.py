@@ -38,8 +38,8 @@ async def fight_start(message: Message, state: FSMContext):
 
             await bot.send_message(waiting_users[0], text='бой найден, можете поговорить с противником')
             room = PVPRoom(
-                u1=Character(),
-                u2=Character(),
+                u1=Character(telegram_id=user_1_id, state=state),
+                u2=Character(telegram_id=user_2_id, state=state2),
             )
 
             room_id = f'{user_1_id}_{user_2_id}'
@@ -63,8 +63,6 @@ async def fight_start(message: Message, state: FSMContext):
 
 
 
-
-
 @router.message(FightStates.starting)
 async def wait(message: Message, state: FSMContext):
     if message.text == 'стоп':
@@ -82,10 +80,10 @@ async def conversation(message: Message, state: FSMContext):
     data = await state.get_data()
     room = pvp_rooms[data.get('room')]
 
-    if message.from_user.id != room.u1.id:
-        await bot.send_message(room.u1.id, message.text)
+    if str(message.from_user.id) != room.u1.telegram_id:
+        await bot.send_message(room.u1.telegram_id, f'*{room.u2.name}*: {message.text}', parse_mode='markdown')
     else:
-        await bot.send_message(room.u2.id, message.text)
+        await bot.send_message(room.u2.telegram_id, f'*{room.u1.name}*: {message.text}', parse_mode='markdown')
 
 
 # --------------------------------------------------------------------------------------------
@@ -93,10 +91,22 @@ async def conversation(message: Message, state: FSMContext):
 
 @router.message(FightStates.move)
 async def fight(message: Message, state: FSMContext):
-    if message.text.lower() == 'сдаться':
-        await state.set_state(MenuStates.main_menu)
-        await message.answer('Вы сдались и вышли в меню', reply_markup=main_menu_keyboard())
+    data = await state.get_data()
+    room = pvp_rooms[data.get('room')]
+    if message.from_user.id == room.u1.telegram_id:
+        player = room.u1
+        enemy = room.u2
+    else:
+        player = room.u2
+        enemy = room.u1
 
-    manager = None
+    if message.text.lower() == 'сдаться':
+        await player.state.set_state(MenuStates.main_menu)
+        await enemy.state.set_state(MenuStates.main_menu)
+
+        await bot.send_message(player.telegram_id, 'Вы сдались, вы вернулись в меню', reply_markup=main_menu_keyboard())
+        await bot.send_message(enemy.telegram_id, 'Противник сдался, вы вернулись в меню', reply_markup=main_menu_keyboard())
+
+    manager =
 
 
