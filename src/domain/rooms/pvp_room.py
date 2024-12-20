@@ -1,12 +1,12 @@
 from src.domain.character.base_schema import Character
 from src.domain.rooms.interface import IRoom
-from src.domain.schemas import ResultsDTO, RoomsInfo
+from src.domain.schemas import ResultsDTO
 
 
 class PVPRoom(IRoom):
     def __init__(self,
-                 u1: Character,  # телеграм id 1 юзера
-                 u2: Character,  # телеграм id 2 юзера
+                 u1: Character,
+                 u2: Character,
                  ):
         self.u1 = u1
         self.u2 = u2

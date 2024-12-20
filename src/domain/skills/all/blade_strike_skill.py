@@ -1,6 +1,7 @@
 import random
 
-from src.domain.schemas import RoomsInfo, ResultsDTO
+from src.domain.character.base_schema import Character
+from src.domain.schemas import ResultsDTO
 from src.domain.skills.interface import ISkill
 from src.utils import text
 
@@ -14,27 +15,36 @@ class BladeStrikeSkill(ISkill):
     cooldown = 0
     damage = 10
 
-    async def move(self, player_id: str, room: RoomsInfo) -> ResultsDTO:
-        if self.using_count >= self.limit:
-            return ResultsDTO(status=False, text='Лимит использования превышен')
+    async def check(self,
+                    player: Character,
+                    enemy: Character,
+                    history: list,
+                    round: int
+                    ) -> bool:
 
-        if player_id == room.u1:
-            player = room.u1_class
-            enemy = room.u2_class
-        else:
-            player = room.u2_class
-            enemy = room.u1_class
+        return True
 
-        damage = random.randint(0, 10)
-        enemy.character.hp -= damage
+    async def move(self,
+                   player: Character,
+                   enemy: Character,
+                   history: list,
+                   round: int
+                   ):
 
-        return ResultsDTO(status=True,
-                           text=text.blade_strike_skill(
-                               player_name=player.character.name,
-                               enemy_name=enemy.character.name,
-                               player_short=player.character.short_texts,
-                               enemy_short=enemy.character.short_texts
-                           ))
+        damage = player.strength * 0.20  # проценты от силы
 
-    async def reflection(self, player_id: str, room: RoomsInfo) -> str:
-        pass
+        enemy_hp = int(enemy.hp)
+        et_hp = 0
+        for stat in enemy.tempo_stats.get('hp', []):
+            if stat['operation'] == 'minus':
+                et_hp -= stat['value']
+
+
+            elif stat['operation'] == 'plus':
+                et_hp += stat['value']
+            elif stat['operation'] == 'replace':
+                enemy_hp = stat['value']
+                et_hp = 0
+                break
+
+        enemy.hp = enemy_hp + et_hp

@@ -1,10 +1,26 @@
-from pydantic import BaseModel
-from typing import Optional
+from aiogram.fsm.context import FSMContext
+from pydantic import BaseModel, ConfigDict
+from typing import Optional, Literal
 
 
 class Character(BaseModel):
-    skills: list = ['Ебанем']
+    model_config = ConfigDict(arbitrary_types_allowed=True)  # Разрешить сторонние типы валидации, FSMContext
+
+    skills: dict = {}  # {"удар клинком": "BladeStrike"}
     class_dev_name: str = 'vic'
+    state: FSMContext = None
+    can_see_enemy_choose: bool = False
+
+    tempo_stats: dict = {}  # ------ пример ниже
+    status: Literal['waiting', 'moving'] = 'moving'
+    passed: int = 0  # Сколько ходов пропустил юзер
+    current_chose: str = None  # dev имя скила
+
+    """
+    tempo_stats: [
+        {field: hp, value: 40, operation: plus, expired: 7}
+    ]
+    """
 
     id: str = '1223'
     telegram_id: str = '67821449'
