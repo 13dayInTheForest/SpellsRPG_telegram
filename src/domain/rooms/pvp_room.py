@@ -22,8 +22,8 @@ class PVPRoom(IRoom):
     """
 
     async def move(self, player_id: str, move_text: str) -> ResultsDTO:
-        if player_id not in (self.stats.u1, self.stats.u2):
-            return ResultsDTO(status=False, message='Ошибка! Попытка залезть не в свою комнату!')
+        if player_id not in (self.u1.telegram_id, self.u2.telegram_id):
+            return ResultsDTO(status=False, text='Ошибка! Попытка залезть не в свою комнату!')
 
 
 

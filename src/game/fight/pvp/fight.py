@@ -38,8 +38,8 @@ async def fight_start(message: Message, state: FSMContext):
 
             await bot.send_message(waiting_users[0], text='бой найден, можете поговорить с противником')
             room = PVPRoom(
-                u1=Character(),
-                u2=Character(),
+                u1=Character(telegram_id=user_1_id),
+                u2=Character(telegram_id=user_2_id),
             )
 
             room_id = f'{user_1_id}_{user_2_id}'
@@ -63,8 +63,6 @@ async def fight_start(message: Message, state: FSMContext):
 
 
 
-
-
 @router.message(FightStates.starting)
 async def wait(message: Message, state: FSMContext):
     if message.text == 'стоп':
@@ -82,10 +80,10 @@ async def conversation(message: Message, state: FSMContext):
     data = await state.get_data()
     room = pvp_rooms[data.get('room')]
 
-    if message.from_user.id != room.u1.id:
-        await bot.send_message(room.u1.id, message.text)
+    if message.from_user.id != room.u1.telegram_id:
+        await bot.send_message(room.u1.telegram_id, f'*{room.u2.name}*: {message.text}', parse_mode='markdown')
     else:
-        await bot.send_message(room.u2.id, message.text)
+        await bot.send_message(room.u2.telegram_id, f'*{room.u1.name}*: {message.text}', parse_mode='markdown')
 
 
 # --------------------------------------------------------------------------------------------
