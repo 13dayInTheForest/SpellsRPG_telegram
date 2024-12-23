@@ -17,6 +17,9 @@ from src.infrastructure.bot import bot
 
 from src.domain.rooms.pvp_room import PVPRoom
 
+from logging import getLogger
+
+
 router = Router()
 
 
@@ -54,12 +57,20 @@ async def fight_start(message: Message, state: FSMContext):
             await state.update_data(room=room_id)
             await state2.update_data(room=room_id)
 
-            await asyncio.sleep(15)
+            manager = SkillManager(
+                u1=room.u1,
+                u2=room.u2,
+                history=room.moves_history,
+                round=room.round
+            )
+
+            # Время на разговор
+            await asyncio.sleep(5)
 
             while room.u1.hp > 0 and room.u2.hp > 0:
                 await state.set_state(FightStates.move)
                 await state2.set_state(FightStates.move)
-                timer = asyncio.create_task(timer_task(30, room))
+
                 await message.answer(f'Раунд {room.round} | 30 секунд')
                 await bot.send_message(user_2_id, f'Раунд {room.round} | 30 секунд')
 
@@ -67,12 +78,22 @@ async def fight_start(message: Message, state: FSMContext):
                 await bot.send_message(user_2_id, 'Выберите действие',
                                        reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
 
-                while True:
-                    if room.u1.status == 'waiting' and room.u2.status == 'waiting':
-                        timer.cancel()
-                        break
+                timer = 30
+                while timer > 0:
                     await asyncio.sleep(1)
+                    timer -= 1
+                    if room.u1.status == 'waiting' and room.u2.status == 'waiting':
+                        break
+                    if timer == 5:
+                        await bot.send_message(room.u1.telegram_id, 'осталось 5 секунд')
+                        await bot.send_message(room.u2.telegram_id, 'осталось 5 секунд')
+                        await asyncio.sleep(5)
 
+                texts = await manager.fight()  # Запустить битву
+                await message.answer(texts.u1_text)
+                await bot.send_message(user_2_id, texts.u2_text)
+                await message.answer(f'ваше хп: {room.u1.hp}\nхп противника: {room.u2.hp}')
+                await bot.send_message(user_2_id, texts.u2_text)
                 room.round += 1
 
 
@@ -90,6 +111,8 @@ async def wait(message: Message, state: FSMContext):
 
 @router.message(FightStates.conversation)
 async def conversation(message: Message, state: FSMContext):
+    if message.text:
+        await message.answer('Послать можно только текстовое сообщение')
     data = await state.get_data()
     room = pvp_rooms[data.get('room')]
 
@@ -117,8 +140,12 @@ async def fight(message: Message, state: FSMContext):
         await player.state.set_state(MenuStates.main_menu)
         await enemy.state.set_state(MenuStates.main_menu)
 
-        await bot.send_message(player.telegram_id, 'Вы сдались, вы вернулись в меню', reply_markup=main_menu_keyboard())
-        await bot.send_message(enemy.telegram_id, 'Противник сдался, вы вернулись в меню', reply_markup=main_menu_keyboard())
+        await bot.send_message(player.telegram_id,
+                               'Вы сдались, вы вернулись в меню',
+                               reply_markup=main_menu_keyboard())
+        await bot.send_message(enemy.telegram_id,
+                               'Противник сдался, вы вернулись в меню',
+                               reply_markup=main_menu_keyboard())
 
     manager = SkillManager(
         u1=room.u1,
@@ -126,7 +153,6 @@ async def fight(message: Message, state: FSMContext):
         history=room.moves_history,
         round=room.round
     )
-
     choice = await manager.choose(str(message.from_user.id), message.text)
     await message.answer(choice.text)
 
@@ -146,12 +172,14 @@ async def wait_for_opponent(message: Message, state: FSMContext):
         await player.state.set_state(MenuStates.main_menu)
         await enemy.state.set_state(MenuStates.main_menu)
 
-        await bot.send_message(player.telegram_id, 'Вы сдались, вы вернулись в меню', reply_markup=main_menu_keyboard())
-        await bot.send_message(enemy.telegram_id, 'Противник сдался, вы вернулись в меню', reply_markup=main_menu_keyboard())
+        await bot.send_message(player.telegram_id,
+                               'Вы сдались, вы вернулись в меню',
+                               reply_markup=main_menu_keyboard())
+        await bot.send_message(enemy.telegram_id,
+                               'Противник сдался, вы вернулись в меню',
+                               reply_markup=main_menu_keyboard())
 
     else:
         await message.delete()
         mes = await message.answer(f'*{enemy.name}* все еще выбирает ход', parse_mode='markdown')
-        await asyncio.sleep(3)
-        await mes.delete()
 

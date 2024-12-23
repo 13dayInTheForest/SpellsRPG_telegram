@@ -14,9 +14,12 @@ from src.infrastructure.database.gods import gods
 from src.game.fight.pvp.fight import router as fight_router
 from src.main_env import storage
 
+from src.logging_config import setup_logging
+
 
 dp = Dispatcher(storage=storage)
 dp.include_router(fight_router)
+setup_logging()
 
 
 
@@ -41,7 +44,7 @@ async def start_handler(message: Message, state: FSMContext):
 
 @dp.message(BattleStates.starting)
 async def please_wait(message: Message):
-    await message.answer('Прояви терпение епта...')
+    await message.answer('Прояви терпение...')
 
 
 @dp.message(MenuStates.shop_menu)
@@ -54,7 +57,6 @@ async def shop_menu(message: Message, state: FSMContext):
         print(await state.get_state())
         print(state.storage)
         await state.clear()
-
 
 
 @dp.callback_query()
@@ -72,7 +74,7 @@ async def gods_handler(callback: CallbackQuery, state: FSMContext):
 
 
 async def main():
-    await bot.delete_webhook(drop_pending_updates=True)
+    # await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
 

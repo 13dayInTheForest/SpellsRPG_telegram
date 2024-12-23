@@ -33,7 +33,7 @@ class BladeStrikeSkill(ISkill):
 
         damage = player.strength * 0.20  # проценты от силы
         enemy_hp = enemy.hp
-        enemy_hp_effects = sorted(enemy.tempo_stats, key=lambda x: x['expired'])
+        enemy_hp_effects = sorted(enemy.tempo_stats.get('hp', {}), key=lambda x: x['expired'])
 
         for effect in enemy_hp_effects:
             if effect['value'] <= 0:
@@ -51,16 +51,30 @@ class BladeStrikeSkill(ISkill):
 
             elif effect['operation'] == 'replace':
                 enemy_hp = effect['value']
+                effect['value'] -= damage
 
             enemy.hp = enemy_hp - damage
 
-        texts = text.blade_strike_skill(
+        if enemy.hp <= 0:
+            texts = text.blade_strike_skill(
+                last_hit=True,
+                player_name=player.name,
+                enemy_name=enemy.name,
+                player_short=player.short_texts,
+                enemy_short=enemy.short_texts)
+        else:
+            texts = text.blade_strike_skill(
                               done=True,
                               player_name=player.name,
                               enemy_name=enemy.name,
                               player_short=player.short_texts,
                               enemy_short=enemy.short_texts)
-        return SkillResult(status=True, player_text=texts['player'], enemy_text=texts['enemy'])
+        return SkillResult(
+            status=True,
+            player_text=texts['player'],
+            enemy_text=texts['enemy'],
+            enemy_stats=f'-{damage} Здоровья',
+        )
 
     async def reflection(self,
                          player: Character,

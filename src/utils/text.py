@@ -16,10 +16,26 @@ def dont_know_this_spell() -> str:
 def blade_strike_skill(
         player_name: str,
         enemy_name: str,
-        done: bool,
+        done: bool = True,
         player_short: bool = False,
-        enemy_short: bool = False) -> dict:
+        enemy_short: bool = False,
+        last_hit: bool = False) -> dict:
     """ Возвращает {"player": str, "enemy": str} """
+
+    if last_hit:
+        if player_short:
+            player_text = f'Вы разрубаете {enemy_name} на две части'
+        else:
+            player_text = f'Молниеносным ударом вашего клинка, вы разрубаете {enemy_name} на две части'
+        if enemy_short:
+            enemy_text = 'Вас разрубили на две части'
+        else:
+            enemy_text = f'{player_name} разрубает своим клинком вас, куски вашего тела падают в разные стороны'
+
+        return {
+            'player': player_text,
+            'enemy': enemy_text
+        }
 
     player_texts = {
         "classic": [

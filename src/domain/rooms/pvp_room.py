@@ -1,9 +1,10 @@
 import asyncio
-from typing import Awaitable, Optional
+from typing import Optional
 
 from src.domain.character.base_schema import Character
 from src.domain.rooms.interface import IRoom
 from src.domain.schemas import ResultsDTO
+from src.domain.skills.manager import SkillManager
 
 
 class PVPRoom(IRoom):
@@ -18,16 +19,12 @@ class PVPRoom(IRoom):
         self.moves_history: list[dict] = []  # история ходов, пример ниже
         self.timer: Optional[asyncio.Task] = None
 
-
     """
     moves_history: [
         {'user_id': str, 'move': str, 'self': ['-1 здоровье'], 'enemy': ['-18 силы', '-1 здоровья']}
     ]
     """
-
     async def move(self, player_id: str, move_text: str) -> ResultsDTO:
-        if player_id not in (self.u1.telegram_id, self.u2.telegram_id):
-            return ResultsDTO(status=False, text='Ошибка! Попытка залезть не в свою комнату!')
-
+        pass
 
 

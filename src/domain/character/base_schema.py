@@ -14,12 +14,13 @@ class Character(BaseModel):
     tempo_stats: dict = {}  # ------ пример ниже
     status: Literal['waiting', 'moving'] = 'moving'
     passed: int = 0  # Сколько ходов пропустил юзер
-    current_choice: str = None  # dev имя скила
+    current_choice: str | None = None  # dev имя скила
+    current_choice_type: Literal['attack', 'defend', 'heal', 'buff', 'debuff'] | None = None  # тип выбранного навыка
 
     """
-    tempo_stats: [
-        {field: hp, value: 40, operation: plus, expired: 7}
-    ]
+    tempo_stats: {
+        hp: [{value: 40, operation: plus, expired: 7}]
+    }
     """
 
     id: str = '1223'

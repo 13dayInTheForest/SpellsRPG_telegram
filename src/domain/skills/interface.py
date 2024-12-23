@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 
 from src.domain.character.base_schema import Character
-from src.domain.schemas import ResultsDTO
+from src.domain.schemas import ResultsDTO, SkillResult
 
 
 class ISkill(ABC):
@@ -23,7 +23,7 @@ class ISkill(ABC):
                    enemy: Character,
                    round: int,
                    history: list
-                   ) -> str: ...
+                   ) -> SkillResult: ...
 
     @abstractmethod
     async def reflection(self,
@@ -31,5 +31,5 @@ class ISkill(ABC):
                          enemy: Character,
                          round: int,
                          history: list
-                         ) -> str: ...
+                         ) -> SkillResult: ...
 

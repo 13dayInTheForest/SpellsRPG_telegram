@@ -9,9 +9,10 @@ async def timer_task(time: int, room: IRoom):
         await bot.send_message(room.u1.telegram_id, 'осталось 5 секунд')
         await bot.send_message(room.u2.telegram_id, 'осталось 5 секунд')
         await asyncio.sleep(5)
-        room.u1.status = 'waiting'
-        room.u2.status = 'waiting'
+        room.u1.status = 'moving'
+        room.u2.status = 'moving'
     except asyncio.CancelledError:
-        print('Таймер убит')
+        room.u1.status = 'moving'
+        room.u2.status = 'moving'
 
 
