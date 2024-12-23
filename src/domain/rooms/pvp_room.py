@@ -1,3 +1,6 @@
+import asyncio
+from typing import Awaitable, Optional
+
 from src.domain.character.base_schema import Character
 from src.domain.rooms.interface import IRoom
 from src.domain.schemas import ResultsDTO
@@ -11,8 +14,9 @@ class PVPRoom(IRoom):
         self.u1 = u1
         self.u2 = u2
 
-        self.round: int = 0  # Подсчет раундов
+        self.round: int = 1  # Подсчет раундов
         self.moves_history: list[dict] = []  # история ходов, пример ниже
+        self.timer: Optional[asyncio.Task] = None
 
 
     """

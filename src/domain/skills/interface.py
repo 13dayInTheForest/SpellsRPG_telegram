@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Literal
 
 from src.domain.character.base_schema import Character
+from src.domain.schemas import ResultsDTO
 
 
 class ISkill(ABC):
@@ -14,7 +15,7 @@ class ISkill(ABC):
                     enemy: Character,
                     history: list,
                     round: int
-                    ): ...
+                    ) -> ResultsDTO: ...
 
     @abstractmethod
     async def move(self,

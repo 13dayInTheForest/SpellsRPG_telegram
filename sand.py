@@ -1,5 +1,3 @@
-a = 123
-b: type(a)
-b = []
+f = {'asd': 324234}
 
-print(a, b)
+print(f.get('asdasd', 'sad'))

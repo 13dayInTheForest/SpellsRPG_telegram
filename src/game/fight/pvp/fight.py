@@ -6,7 +6,9 @@ from aiogram.types import Message
 from aiogram.fsm.context import FSMContext
 
 from src.domain.character.base_schema import Character
+from src.domain.skills.manager import SkillManager
 from src.game.fight.states import FightStates
+from src.game.fight.utils import timer_task
 from src.game.menu.states import MenuStates
 from src.infrastructure.keyboards.battle import skills_buttons
 from src.infrastructure.keyboards.menu import main_menu_keyboard
@@ -53,14 +55,25 @@ async def fight_start(message: Message, state: FSMContext):
             await state2.update_data(room=room_id)
 
             await asyncio.sleep(15)
-            await state.set_state(FightStates.move)
-            await state2.set_state(FightStates.move)
-            await message.answer('время разговоров окончено')
-            await bot.send_message(user_2_id, 'время разговоров окончено')
 
-            await message.answer('Выберите действие', reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
-            await bot.send_message(user_2_id, 'Выберите действие', reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+            while room.u1.hp > 0 and room.u2.hp > 0:
+                await state.set_state(FightStates.move)
+                await state2.set_state(FightStates.move)
+                timer = asyncio.create_task(timer_task(30, room))
+                await message.answer(f'Раунд {room.round} | 30 секунд')
+                await bot.send_message(user_2_id, f'Раунд {room.round} | 30 секунд')
 
+                await message.answer('Выберите действие', reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+                await bot.send_message(user_2_id, 'Выберите действие',
+                                       reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+
+                while True:
+                    if room.u1.status == 'waiting' and room.u2.status == 'waiting':
+                        timer.cancel()
+                        break
+                    await asyncio.sleep(1)
+
+                room.round += 1
 
 
 @router.message(FightStates.starting)
@@ -107,6 +120,38 @@ async def fight(message: Message, state: FSMContext):
         await bot.send_message(player.telegram_id, 'Вы сдались, вы вернулись в меню', reply_markup=main_menu_keyboard())
         await bot.send_message(enemy.telegram_id, 'Противник сдался, вы вернулись в меню', reply_markup=main_menu_keyboard())
 
-    manager =
+    manager = SkillManager(
+        u1=room.u1,
+        u2=room.u2,
+        history=room.moves_history,
+        round=room.round
+    )
 
+    choice = await manager.choose(str(message.from_user.id), message.text)
+    await message.answer(choice.text)
+
+
+@router.message(FightStates.waiting)
+async def wait_for_opponent(message: Message, state: FSMContext):
+    data = await state.get_data()
+    room = pvp_rooms[data.get('room')]
+    if message.from_user.id == room.u1.telegram_id:
+        player = room.u1
+        enemy = room.u2
+    else:
+        player = room.u2
+        enemy = room.u1
+
+    if message.text.lower() == 'сдаться':
+        await player.state.set_state(MenuStates.main_menu)
+        await enemy.state.set_state(MenuStates.main_menu)
+
+        await bot.send_message(player.telegram_id, 'Вы сдались, вы вернулись в меню', reply_markup=main_menu_keyboard())
+        await bot.send_message(enemy.telegram_id, 'Противник сдался, вы вернулись в меню', reply_markup=main_menu_keyboard())
+
+    else:
+        await message.delete()
+        mes = await message.answer(f'*{enemy.name}* все еще выбирает ход', parse_mode='markdown')
+        await asyncio.sleep(3)
+        await mes.delete()
 

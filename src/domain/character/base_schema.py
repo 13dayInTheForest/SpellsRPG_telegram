@@ -6,7 +6,7 @@ from typing import Optional, Literal
 class Character(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)  # Разрешить сторонние типы валидации, FSMContext
 
-    skills: dict = {}  # {"удар клинком": "BladeStrike"}
+    skills: dict = {"удар клинком": "BladeStrike"}  # {"удар клинком": "BladeStrike"}
     class_dev_name: str = 'vic'
     state: FSMContext = None
     can_see_enemy_choose: bool = False
@@ -14,7 +14,7 @@ class Character(BaseModel):
     tempo_stats: dict = {}  # ------ пример ниже
     status: Literal['waiting', 'moving'] = 'moving'
     passed: int = 0  # Сколько ходов пропустил юзер
-    current_chose: str = None  # dev имя скила
+    current_choice: str = None  # dev имя скила
 
     """
     tempo_stats: [

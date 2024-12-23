@@ -1,4 +1,5 @@
 from random import choice
+from typing import Dict, Annotated
 
 
 def dont_know_this_spell() -> str:
@@ -18,6 +19,7 @@ def blade_strike_skill(
         done: bool,
         player_short: bool = False,
         enemy_short: bool = False) -> dict:
+    """ Возвращает {"player": str, "enemy": str} """
 
     player_texts = {
         "classic": [
