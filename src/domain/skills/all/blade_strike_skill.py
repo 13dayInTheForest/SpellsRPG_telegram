@@ -31,8 +31,7 @@ class BladeStrikeSkill(ISkill):
                    round: int
                    ) -> SkillResult:
 
-        damage = player.strength * 0.20  # проценты от силы
-        enemy_hp = enemy.hp
+        damage = int(player.strength * 0.20)  # проценты от силы
         enemy_hp_effects = sorted(enemy.tempo_stats.get('hp', {}), key=lambda x: x['expired'])
 
         for effect in enemy_hp_effects:
@@ -49,31 +48,22 @@ class BladeStrikeSkill(ISkill):
                     effect['value'] -= damage
                     break
 
-            elif effect['operation'] == 'replace':
-                enemy_hp = effect['value']
-                effect['value'] -= damage
-
-            enemy.hp = enemy_hp - damage
-
+        enemy.hp -= damage
         if enemy.hp <= 0:
-            texts = text.blade_strike_skill(
-                last_hit=True,
-                player_name=player.name,
-                enemy_name=enemy.name,
-                player_short=player.short_texts,
-                enemy_short=enemy.short_texts)
+            last_hit = True
+            texts = text.blade_strike_skill(player_name=player.name, enemy_name=enemy.name,
+                                            player_short=player.short_texts, enemy_short=enemy.short_texts,
+                                            last_hit=last_hit)
         else:
-            texts = text.blade_strike_skill(
-                              done=True,
-                              player_name=player.name,
-                              enemy_name=enemy.name,
-                              player_short=player.short_texts,
-                              enemy_short=enemy.short_texts)
+            last_hit = False
+            texts = text.blade_strike_skill(player_name=player.name, enemy_name=enemy.name,
+                                            player_short=player.short_texts, enemy_short=enemy.short_texts)
         return SkillResult(
             status=True,
             player_text=texts['player'],
             enemy_text=texts['enemy'],
-            enemy_stats=[f'-{damage} Здоровья']
+            enemy_stats=[f'-{damage} Здоровья'],
+            last_hit=last_hit
         )
 
     async def reflected(self,
@@ -81,5 +71,11 @@ class BladeStrikeSkill(ISkill):
                         enemy: Character,
                         round: int,
                         history: list
-                        ) -> str:
-        pass
+                        ) -> SkillResult:
+        texts = text.blade_strike_skill(player_name=player.name, enemy_name=enemy.name, reflected=True,
+                                        player_short=player.short_texts, enemy_short=enemy.short_texts)
+        return SkillResult(
+            status=True,
+            player_text=texts['player'],
+            enemy_text=texts['enemy'],
+        )

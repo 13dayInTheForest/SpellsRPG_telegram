@@ -126,7 +126,7 @@ class SkillManager:
 
         if len(u2_text.get('stats')) > 0:
             u2_final_text += '\nТы:'
-            for text in u1_text.get('stats'):
+            for text in u2_text.get('stats'):
                 u2_final_text += f'\n{text}'
         if len(u1_text.get('stats')) > 0:
             u2_final_text += '\nВраг:'
@@ -172,27 +172,28 @@ class SkillManager:
             if u1_result.last_hit:  # Если после этого скила противник лишился всего хп
                 return RoundStatsResult(
                     u1_text=u1_result.player_text,
-                    u2_text=u1_result.enemy_text
+                    u2_text=u1_result.enemy_text,
+                    last_hit=self.u1.telegram_id
                 )
             # Распаковка текстов после навыка
             u1['main'] += f'{u1_result.player_text}\n'
-            u1['stats'].extend(f'{u1_result.player_stats}')
+            u1['stats'].extend(u1_result.player_stats)
             u2['main'] += f'{u1_result.enemy_text}\n'
-            u2['stats'].extend(f'{u1_result.enemy_stats}')
+            u2['stats'].extend(u1_result.enemy_stats)
 
         elif user == 2:
             u2_skill: Optional[ISkill] = skills_catalog.get(self.u2.current_choice, DoNothing)
             if reflected:  # Если удар отражен
                 u2_result = await u2_skill.reflected(
-                    player=self.u1,
-                    enemy=self.u2,
+                    player=self.u2,
+                    enemy=self.u1,
                     round=self.round,
                     history=self.history
                 )
             else:  # Обычное применение
                 u2_result = await u2_skill.move(
-                    player=self.u1,
-                    enemy=self.u2,
+                    player=self.u2,
+                    enemy=self.u1,
                     round=self.round,
                     history=self.history
                 )
@@ -200,13 +201,14 @@ class SkillManager:
             if u2_result.last_hit:  # Если после этого скила противник лишился всего хп
                 return RoundStatsResult(
                     u1_text=u2_result.enemy_text,
-                    u2_text=u2_result.player_text
+                    u2_text=u2_result.player_text,
+                    last_hit=self.u1.telegram_id
                 )
             # Распаковка текстов после навыка
             u2['main'] += f'{u2_result.player_text}\n'
-            u2['stats'].extend(f'{u2_result.player_stats}')
+            u2['stats'].extend(u2_result.player_stats)
             u1['main'] += f'{u2_result.enemy_text}\n'
-            u1['stats'].extend(f'{u2_result.enemy_stats}')
+            u1['stats'].extend(u2_result.enemy_stats)
 
         else:
             raise Exception(f'{__name__} В {self.__do_skill.__name__} можно указывать только 1 или 2')

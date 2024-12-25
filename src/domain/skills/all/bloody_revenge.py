@@ -3,9 +3,9 @@ from src.domain.schemas import ResultsDTO, SkillResult
 from src.domain.skills.interface import ISkill
 
 
-class ReflectSkill(ISkill):
-    skill_type = 'defend'
-    min_hp = 20
+class DoNothing(ISkill):
+    """ Навык-заглушка для бездействия """
+    skill_type = 'nothing'
 
     async def check(self,
                     player: Character,
@@ -13,8 +13,6 @@ class ReflectSkill(ISkill):
                     history: list,
                     round: int
                     ) -> ResultsDTO:
-        if player.hp >= self.min_hp:
-            return ResultsDTO(status=False, text='Этот навык можно использовать только при хп ниже 20')
         return ResultsDTO(status=True)
 
     async def move(self,
@@ -23,11 +21,39 @@ class ReflectSkill(ISkill):
                    round: int,
                    history: list
                    ) -> SkillResult:
+        damage = 0
+
+        for skill in history:
+            pass
+
+        enemy_hp_effects = sorted(enemy.tempo_stats.get('hp', {}), key=lambda x: x['expired'])
+
+        for effect in enemy_hp_effects:
+            if effect['value'] <= 0:
+                continue
+
+            elif effect['operation'] == 'plus':
+                if effect['value'] < damage:
+                    damage -= effect['value']
+                    effect['value'] = 0
+                    if damage <= 0:
+                        break
+                else:
+                    effect['value'] -= damage
+                    break
+
+        enemy.hp -= damage
+
+        if enemy.hp <= 0:
+            last_hit = True
+
+        else:
+            last_hit = False
 
         return SkillResult(
             status=True,
-            player_text='Вы отразили весь урон',
-            enemy_text='Враг отразил весь урон'
+            player_text='КРОВАВАЯ МЕЕЕЕСТЬ',
+            enemy_text='КРОВАВАЯ МЕЕЕЕСТЬ'
         )
 
     async def reflected(self,

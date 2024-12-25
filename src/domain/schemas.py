@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Optional
 
 
 class ResultsDTO(BaseModel):
@@ -19,3 +19,4 @@ class SkillResult(BaseModel):
 class RoundStatsResult(BaseModel):
     u1_text: str
     u2_text: str
+    winner: Optional[str] = None

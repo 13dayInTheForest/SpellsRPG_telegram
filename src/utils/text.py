@@ -16,7 +16,7 @@ def dont_know_this_spell() -> str:
 def blade_strike_skill(
         player_name: str,
         enemy_name: str,
-        done: bool = True,
+        reflected: bool = False,
         player_short: bool = False,
         enemy_short: bool = False,
         last_hit: bool = False) -> dict:
@@ -59,9 +59,36 @@ def blade_strike_skill(
         ]
     }
 
+    player_reflected_texts = {
+        "classic": [
+            'Быстрым движением вы достаете кинжал, но атака не увенчалась успехом...',
+            f'Вы достали нож и пытаетесь ударить соперника, но у вас ничего не вышло...'
+        ],
+        "short": [
+            'Вы пытались ударить врага кинжалом, но ничего не вышло...',
+            f'*{enemy_name}* оказался сильнее примитивных атак...'
+        ]
+    }
+
+    enemy_reflected_texts = {
+        "classic": [
+            'Ваш соперник достал кинжал, но вы были к этому готовы еще с рождения...',
+            f'В голове у вас промелькнуло "*{player_name}*, сегодня не твой день" перед тем как отразить его атаку'
+        ],
+        "short": [
+            'Ваш враг облажался, атака не удалась...',
+            f'*{player_name}* совершил ошибку напав на вас...'
+        ]
+    }
+
     result = dict()
-    result['player'] = choice(player_texts['short']) if player_short else choice(player_texts['classic'])
-    result['enemy'] = choice(enemy_texts['short']) if enemy_short else choice(enemy_texts['classic'])
+
+    if not reflected:
+        result['player'] = choice(player_texts['short']) if player_short else choice(player_texts['classic'])
+        result['enemy'] = choice(enemy_texts['short']) if enemy_short else choice(enemy_texts['classic'])
+    else:
+        result['player'] = choice(player_reflected_texts['short']) if player_short else choice(player_reflected_texts['classic'])
+        result['enemy'] = choice(enemy_reflected_texts['short']) if enemy_short else choice(enemy_reflected_texts['classic'])
 
     return result
 

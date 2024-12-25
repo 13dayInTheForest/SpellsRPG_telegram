@@ -42,7 +42,7 @@ async def fight_start(message: Message, state: FSMContext):
             await message.answer('бой найден, можете поговорить с противником')
 
             room = PVPRoom(
-                u1=Character(telegram_id=user_1_id, state=state),
+                u1=Character(telegram_id=user_1_id, state=state, strength=100),
                 u2=Character(telegram_id=user_2_id, state=state2),
             )
 
@@ -87,14 +87,28 @@ async def fight_start(message: Message, state: FSMContext):
                         await bot.send_message(room.u2.telegram_id, 'осталось 5 секунд')
                         await asyncio.sleep(5)
 
-                texts = await manager.fight()  # Запуск подсчета результатов
-                await message.answer(texts.u1_text)
-                await bot.send_message(user_2_id, texts.u2_text)
+                fight_results = await manager.fight()  # Запуск подсчета результатов
+                if fight_results.winner is not None:
+                    await state.set_state(MenuStates.main_menu)
+                    await state2.set_state(MenuStates.main_menu)
+                    await bot.send_message(fight_results.winner,
+                                           'Вы выиграли, и вернулись в меню',
+                                           reply_markup=main_menu_keyboard())
+                    await bot.send_message(fight_results.winner,
+                                           'Вы проиграли, и позорно вернулись в меню',
+                                           reply_markup=main_menu_keyboard())
+                    break
+
+                await message.answer(fight_results.u1_text)
+                await bot.send_message(user_2_id, fight_results.u2_text)
                 await message.answer(f'ваше хп: {room.u1.hp}\nхп противника: {room.u2.hp}')
                 await bot.send_message(user_2_id, f'ваше хп: {room.u2.hp}\nхп противника: {room.u1.hp}')
+                await state.set_state(FightStates.move)
+                await state2.set_state(FightStates.move)
+                room.u1.status = 'moving'
+                room.u2.status = 'moving'
 
                 room.round += 1
-
 
 @router.message(FightStates.starting)
 async def wait(message: Message, state: FSMContext):
@@ -181,5 +195,5 @@ async def wait_for_opponent(message: Message, state: FSMContext):
 
     else:
         await message.delete()
-        mes = await message.answer(f'*{enemy.name}* все еще выбирает ход', parse_mode='markdown')
+        await message.answer(f'*{enemy.name}* все еще выбирает ход', parse_mode='markdown')
 
