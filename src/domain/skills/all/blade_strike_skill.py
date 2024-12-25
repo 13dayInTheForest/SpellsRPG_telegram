@@ -8,7 +8,7 @@ from src.utils import text
 
 class BladeStrikeSkill(ISkill):
     name = 'удар клинком'
-    skill_type = 'damage'
+    skill_type = 'attack'
     damage_type = 'strength'
     using_count = 0
     limit = 999
@@ -73,13 +73,13 @@ class BladeStrikeSkill(ISkill):
             status=True,
             player_text=texts['player'],
             enemy_text=texts['enemy'],
-            enemy_stats=f'-{damage} Здоровья',
+            enemy_stats=[f'-{damage} Здоровья']
         )
 
-    async def reflection(self,
-                         player: Character,
-                         enemy: Character,
-                         round: int,
-                         history: list
-                         ) -> str:
+    async def reflected(self,
+                        player: Character,
+                        enemy: Character,
+                        round: int,
+                        history: list
+                        ) -> str:
         pass

@@ -1,5 +1,6 @@
 from typing import Optional
 
+from .all.do_nothing import DoNothing
 from .catalog import skills_catalog
 from .interface import ISkill
 from ..character.base_schema import Character
@@ -19,11 +20,19 @@ class SkillManager:
         self.history = history
         self.round = round
 
-    async def choose(self, telegram_id: str, spell: str) -> ResultsDTO:
-        if telegram_id == self.u1.telegram_id:
-            player, enemy = self.u1, self.u2
+    @staticmethod
+    async def choose(
+            telegram_id: str,
+            u1: Character,
+            u2: Character,
+            spell: str,
+            history: list,
+            round: int) -> ResultsDTO:
+
+        if telegram_id == u1.telegram_id:
+            player, enemy = u1, u2
         else:
-            player, enemy = self.u2, self.u1
+            player, enemy = u2, u1
 
         #  Взять dev имя скила если он есть в Character, если его нет то вернуть False
         spell_dev_name = player.skills.get(spell.lower(), False)
@@ -35,9 +44,9 @@ class SkillManager:
         if not skill:
             return ResultsDTO(status=False, text='В данный момент этот навык не доступен в игре >:(')
 
-        check_result = await skill.check(player=player, enemy=enemy, history=self.history, round=self.round)
+        check_result = await skill.check(player=player, enemy=enemy, history=history, round=round)
         if not check_result.status:
-            return check_result
+            return ResultsDTO(status=False, text=check_result.text)
 
         player.current_choice = spell_dev_name
         player.current_choice_type = skill.skill_type
@@ -47,72 +56,82 @@ class SkillManager:
         return ResultsDTO(status=True, text=f'Вы выбрали *{spell}*')
 
     async def fight(self) -> RoundStatsResult:
-        u1_main_text = u2_main_text = ''
-        u1_self_stats = u2_self_stats = ''
-        u1_enemy_stats = u2_enemy_stats = ''
+        u1_text = {'main': '', 'stats': []}
+        u2_text = {'main': '', 'stats': []}
 
-        # Если игрок 1 не выбрал ничего, просто применить выбор 2 игрока
-        if self.u1.current_choice is None:
-            skill: Optional[ISkill] = skills_catalog.get(self.u2.current_choice, False)
-            result = await skill.move(
-                self.u1,
-                self.u2,
-                self.round,
-                self.history
-            )
-            if result.last_hit:
-                return RoundStatsResult(
-                    u1_text=result.enemy_text,
-                    u2_text=result.player_text
-                )
+        # Если 1 юзер выбрал защиту
+        if 'defend' == self.u1.current_choice_type:
+            u2_result = await self.__do_skill(2, u1=u1_text, u2=u2_text, reflected=True)
+            if u2_result is not None:
+                return u2_result
 
-            # После навыка 2 юзера, 1 идет как enemy (result.enemy_stats)
-            u2_main_text += f'{result.player_text}'
-            u2_self_stats += f'{result.player_stats}\n'
-            u2_enemy_stats += f'{result.enemy_stats}\n'
+            u1_result = await self.__do_skill(1, u1=u1_text, u2=u2_text)
+            if u1_result is not None:
+                return u1_result
 
-            u1_main_text += f'{result.enemy_text}'
-            u1_self_stats += f'{result.enemy_stats}\n'
-            u1_enemy_stats += f'{result.player_stats}\n'
+        # Если 2 юзер выбрал защиту
+        elif 'defend' == self.u2.current_choice_type:
+            u1_result = await self.__do_skill(1, u1=u1_text, u2=u2_text, reflected=True)
+            if u1_result is not None:
+                return u1_result
 
-        # Если игрок 2 не выбрал ничего, просто применить выбор 1 игрока
-        elif self.u1.current_choice is None:
-            skill: Optional[ISkill] = skills_catalog.get(self.u2.current_choice, False)
-            result = await skill.move(
-                self.u1,
-                self.u2,
-                self.round,
-                self.history
-            )
-            if result.last_hit:
-                return RoundStatsResult(
-                    u1_text=result.player_text,
-                    u2_text=result.enemy_text
-                )
+            u2_result = await self.__do_skill(2, u1=u1_text, u2=u2_text)
+            if u2_result is not None:
+                return u2_result
 
-            # После навыка 2 юзера, 1 идет как enemy (result.enemy_stats)
-            u1_main_text += f'{result.player_text}'
-            u1_self_stats += f'{result.player_stats}\n'
-            u1_enemy_stats += f'{result.enemy_stats}\n'
+        # Если оба выбрали защиту
+        elif 'defend' == self.u1.current_choice_type and 'defend' == self.u2.current_choice_type:
+            u1_result = await self.__do_skill(1, u1=u1_text, u2=u2_text, reflected=True)
+            if u1_result is not None:
+                return u1_result
 
-            u2_main_text += f'{result.enemy_text}'
-            u2_self_stats += f'{result.enemy_stats}\n'
-            u2_enemy_stats += f'{result.player_stats}\n'
+            u2_result = await self.__do_skill(2, u1=u1_text, u2=u2_text, reflected=True)
+            if u2_result is not None:
+                return u2_result
 
-        # Если кто-нибудь выбрал защиту
-        if 'defend' in (self.u1.current_choice_type, self.u2.current_choice_type):
-            # Если обы выбрали защиту
-            if self.u1.current_choice_type == 'defend' and self.u2.current_choice_type == 'defend':
-                pass
+        # В случае если оба выбрали что-то кроме защиты
+        else:
+            if self.round % 2 != 0:  # Если раунд не четный, первым ходит юзер 1
+                """ 1 юзер ходит первым """
+                u1_result = await self.__do_skill(1, u1=u1_text, u2=u2_text)
+                if u1_result is not None:
+                    return u1_result
+
+                u2_result = await self.__do_skill(2, u1=u1_text, u2=u2_text)
+                if u2_result is not None:
+                    return u2_result
+
+            else:
+                """ 2 юзер ходит первым """
+                u2_result = await self.__do_skill(2, u1=u1_text, u2=u2_text)
+                if u2_result is not None:
+                    return u2_result
+
+                u1_result = await self.__do_skill(1, u1=u1_text, u2=u2_text)
+                if u1_result is not None:
+                    return u1_result
 
         # --------------------------------- СБОРКА ТЕКСТОВ -------------------------------------
-        u1_result_text = (f'{u1_main_text}\n\n '  # --------------------------------- Главный текст
-                          f'Вы:\n{u1_self_stats if u1_self_stats != "" else ""}\n'  # ---- Личные эффекты 
-                          f'{u1_enemy_stats if u1_enemy_stats != "" else ""}')  # --- Эффекты врага
+        u1_final_text = u1_text.get('main', '') + '\n'
+        u2_final_text = u2_text.get('main', '') + '\n'
 
-        u2_result_text = (f'{u2_main_text}\n\n '  # --------------------------------- Главный текст
-                          f'Вы:\n{u2_self_stats if u2_self_stats != "" else ""}\n'  # ---- Личные эффекты 
-                          f'Противник:\n{u2_enemy_stats if u2_enemy_stats != "" else ""}')  # --- Эффекты врага
+        if len(u1_text.get('stats')) > 0:
+            u1_final_text += '\nТы:'
+            for text in u1_text.get('stats'):
+                u1_final_text += f'\n{text}'
+        if len(u2_text.get('stats')) > 0:
+            u1_final_text += '\nВраг:'
+            for text in u2_text.get('stats'):
+                u1_final_text += f'\n{text}'
+
+        if len(u2_text.get('stats')) > 0:
+            u2_final_text += '\nТы:'
+            for text in u1_text.get('stats'):
+                u2_final_text += f'\n{text}'
+        if len(u1_text.get('stats')) > 0:
+            u2_final_text += '\nВраг:'
+            for text in u1_text.get('stats'):
+                u2_final_text += f'\n{text}'
 
         # Сброс выбора способностей
         self.u1.current_choice = None
@@ -121,7 +140,73 @@ class SkillManager:
         self.u2.current_choice_type = None
 
         return RoundStatsResult(
-            u1_text=u1_result_text,
-            u2_text=u2_result_text
+            u1_text=u1_final_text,
+            u2_text=u2_final_text
         )
 
+    async def __do_skill(self,
+                         user: 1 | 2,
+                         u1: dict[str, list[str]],
+                         u2: dict[str, list[str]],
+                         reflected: bool = False
+                         ) -> RoundStatsResult | None:
+        """ Если кто-нибудь даст ласт хит, то метод вернет RoundStatsResult """
+        if user == 1:
+            u1_skill: Optional[ISkill] = skills_catalog.get(self.u1.current_choice, DoNothing)
+
+            if reflected:  # Если удар отражен
+                u1_result = await u1_skill.reflected(
+                    player=self.u1,
+                    enemy=self.u2,
+                    round=self.round,
+                    history=self.history
+                )
+            else:  # Обычное применение
+                u1_result = await u1_skill.move(
+                    player=self.u1,
+                    enemy=self.u2,
+                    round=self.round,
+                    history=self.history
+                )
+
+            if u1_result.last_hit:  # Если после этого скила противник лишился всего хп
+                return RoundStatsResult(
+                    u1_text=u1_result.player_text,
+                    u2_text=u1_result.enemy_text
+                )
+            # Распаковка текстов после навыка
+            u1['main'] += f'{u1_result.player_text}\n'
+            u1['stats'].extend(f'{u1_result.player_stats}')
+            u2['main'] += f'{u1_result.enemy_text}\n'
+            u2['stats'].extend(f'{u1_result.enemy_stats}')
+
+        elif user == 2:
+            u2_skill: Optional[ISkill] = skills_catalog.get(self.u2.current_choice, DoNothing)
+            if reflected:  # Если удар отражен
+                u2_result = await u2_skill.reflected(
+                    player=self.u1,
+                    enemy=self.u2,
+                    round=self.round,
+                    history=self.history
+                )
+            else:  # Обычное применение
+                u2_result = await u2_skill.move(
+                    player=self.u1,
+                    enemy=self.u2,
+                    round=self.round,
+                    history=self.history
+                )
+
+            if u2_result.last_hit:  # Если после этого скила противник лишился всего хп
+                return RoundStatsResult(
+                    u1_text=u2_result.enemy_text,
+                    u2_text=u2_result.player_text
+                )
+            # Распаковка текстов после навыка
+            u2['main'] += f'{u2_result.player_text}\n'
+            u2['stats'].extend(f'{u2_result.player_stats}')
+            u1['main'] += f'{u2_result.enemy_text}\n'
+            u1['stats'].extend(f'{u2_result.enemy_stats}')
+
+        else:
+            raise Exception(f'{__name__} В {self.__do_skill.__name__} можно указывать только 1 или 2')

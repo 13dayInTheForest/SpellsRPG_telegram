@@ -22,7 +22,6 @@ dp.include_router(fight_router)
 setup_logging()
 
 
-
 class MenuStates(StatesGroup):
     main_menu = State()
 

@@ -11,8 +11,8 @@ class SkillResult(BaseModel):
     status: bool
     player_text: str
     enemy_text: str
-    player_stats: str = ''
-    enemy_stats: str = ''
+    player_stats: list = []
+    enemy_stats: list = []
     last_hit: bool = False
 
 

@@ -8,7 +8,6 @@ from aiogram.fsm.context import FSMContext
 from src.domain.character.base_schema import Character
 from src.domain.skills.manager import SkillManager
 from src.game.fight.states import FightStates
-from src.game.fight.utils import timer_task
 from src.game.menu.states import MenuStates
 from src.infrastructure.keyboards.battle import skills_buttons
 from src.infrastructure.keyboards.menu import main_menu_keyboard
@@ -16,8 +15,6 @@ from src.main_env import waiting_users, storage, pvp_rooms
 from src.infrastructure.bot import bot
 
 from src.domain.rooms.pvp_room import PVPRoom
-
-from logging import getLogger
 
 
 router = Router()
@@ -42,16 +39,16 @@ async def fight_start(message: Message, state: FSMContext):
             user_2_id = str(waiting_users[0])
 
             await bot.send_message(waiting_users[0], text='бой найден, можете поговорить с противником')
+            await message.answer('бой найден, можете поговорить с противником')
+
             room = PVPRoom(
                 u1=Character(telegram_id=user_1_id, state=state),
                 u2=Character(telegram_id=user_2_id, state=state2),
             )
 
             room_id = f'{user_1_id}_{user_2_id}'
-
             pvp_rooms[room_id] = room
 
-            await message.answer('бой найден, можете поговорить с противником')
             await state.set_state(FightStates.conversation)
             await state2.set_state(FightStates.conversation)
             await state.update_data(room=room_id)
@@ -65,7 +62,7 @@ async def fight_start(message: Message, state: FSMContext):
             )
 
             # Время на разговор
-            await asyncio.sleep(5)
+            await asyncio.sleep(0)
 
             while room.u1.hp > 0 and room.u2.hp > 0:
                 await state.set_state(FightStates.move)
@@ -74,9 +71,10 @@ async def fight_start(message: Message, state: FSMContext):
                 await message.answer(f'Раунд {room.round} | 30 секунд')
                 await bot.send_message(user_2_id, f'Раунд {room.round} | 30 секунд')
 
-                await message.answer('Выберите действие', reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+                await message.answer('Выберите действие',
+                                     reply_markup=skills_buttons(list(room.u1.skills.keys()) + ['Сдаться']))
                 await bot.send_message(user_2_id, 'Выберите действие',
-                                       reply_markup=skills_buttons(['Удар клинком', 'Сдаться']))
+                                       reply_markup=skills_buttons(list(room.u2.skills.keys()) + ['Сдаться']))
 
                 timer = 30
                 while timer > 0:
@@ -89,11 +87,12 @@ async def fight_start(message: Message, state: FSMContext):
                         await bot.send_message(room.u2.telegram_id, 'осталось 5 секунд')
                         await asyncio.sleep(5)
 
-                texts = await manager.fight()  # Запустить битву
+                texts = await manager.fight()  # Запуск подсчета результатов
                 await message.answer(texts.u1_text)
                 await bot.send_message(user_2_id, texts.u2_text)
                 await message.answer(f'ваше хп: {room.u1.hp}\nхп противника: {room.u2.hp}')
-                await bot.send_message(user_2_id, texts.u2_text)
+                await bot.send_message(user_2_id, f'ваше хп: {room.u2.hp}\nхп противника: {room.u1.hp}')
+
                 room.round += 1
 
 
@@ -147,13 +146,14 @@ async def fight(message: Message, state: FSMContext):
                                'Противник сдался, вы вернулись в меню',
                                reply_markup=main_menu_keyboard())
 
-    manager = SkillManager(
+    choice = await SkillManager.choose(
+        telegram_id=str(message.from_user.id),
         u1=room.u1,
         u2=room.u2,
         history=room.moves_history,
-        round=room.round
+        round=room.round,
+        spell=message.text
     )
-    choice = await manager.choose(str(message.from_user.id), message.text)
     await message.answer(choice.text)
 
 

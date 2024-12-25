@@ -7,7 +7,7 @@ from src.domain.schemas import ResultsDTO, SkillResult
 
 class ISkill(ABC):
     stats: dict
-    skill_type: Literal['attack', 'defend', 'heal', 'buff', 'debuff']
+    skill_type: Literal['attack', 'defend', 'heal', 'buff', 'debuff', 'nothing']
 
     @abstractmethod
     async def check(self,
@@ -26,7 +26,7 @@ class ISkill(ABC):
                    ) -> SkillResult: ...
 
     @abstractmethod
-    async def reflection(self,
+    async def reflected(self,
                          player: Character,
                          enemy: Character,
                          round: int,
