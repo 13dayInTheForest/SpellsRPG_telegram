@@ -77,7 +77,7 @@ async def fight_start(message: Message, state: FSMContext):
                                        reply_markup=skills_buttons(list(room.u2.skills.keys()) + ['Сдаться']))
 
                 timer = 30
-                while timer > 0:
+                while timer > 0 and room.u1.status and room.u2.in_battle:
                     await asyncio.sleep(1)
                     timer -= 1
                     if room.u1.status == 'waiting' and room.u2.status == 'waiting':
@@ -97,6 +97,9 @@ async def fight_start(message: Message, state: FSMContext):
                     await bot.send_message(fight_results.winner,
                                            'Вы проиграли, и позорно вернулись в меню',
                                            reply_markup=main_menu_keyboard())
+                    break
+
+                if not room.u1.status or not room.u2.in_battle:
                     break
 
                 await message.answer(fight_results.u1_text)
@@ -159,16 +162,19 @@ async def fight(message: Message, state: FSMContext):
         await bot.send_message(enemy.telegram_id,
                                'Противник сдался, вы вернулись в меню',
                                reply_markup=main_menu_keyboard())
-
-    choice = await SkillManager.choose(
-        telegram_id=str(message.from_user.id),
-        u1=room.u1,
-        u2=room.u2,
-        history=room.moves_history,
-        round=room.round,
-        spell=message.text
-    )
-    await message.answer(choice.text)
+        pvp_rooms.pop(data.get('room'))
+        player.in_battle = False
+        enemy.in_battle = False
+    else:
+        choice = await SkillManager.choose(
+            telegram_id=str(message.from_user.id),
+            u1=room.u1,
+            u2=room.u2,
+            history=room.moves_history,
+            round=room.round,
+            spell=message.text
+        )
+        await message.answer(choice.text)
 
 
 @router.message(FightStates.waiting)

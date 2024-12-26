@@ -12,7 +12,6 @@ class IRoom(ABC):
 
     round: int = 0  # Подсчет раундов
     moves_history: list[dict] = []  # история ходов, пример ниже
-    timer: Optional[asyncio.Task] = None
 
     @abstractmethod
     async def move(self, player_id: str, move_text: str) -> ResultsDTO:

@@ -6,20 +6,26 @@ from typing import Optional, Literal
 class Character(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)  # Разрешить сторонние типы валидации, FSMContext
 
-    skills: dict = {"удар клинком": "BladeStrike"}  # {"удар клинком": "BladeStrike"}
+    skills: dict = {"удар клинком": "BladeStrike", 'кровавая месть': 'BloodyRevenge', 'полное отражение': 'ReflectSkill'}  # {"удар клинком": "BladeStrike"}
     class_dev_name: str = 'vic'
     state: FSMContext = None
-    can_see_enemy_choose: bool = False
+    in_battle: bool = True
 
-    tempo_stats: dict = {}  # ------ пример ниже
+    tempo_stats: dict = {}  # ------ временные эффекты, пример ниже
     status: Literal['waiting', 'moving'] = 'moving'
     passed: int = 0  # Сколько ходов пропустил юзер
     current_choice: str | None = None  # dev имя скила
     current_choice_type: Literal['attack', 'defend', 'heal', 'buff', 'debuff'] | None = None  # тип выбранного навыка
+    choice_self_effects: list | None = None  # Эффекты от своего навыка, только для документации
+    choice_enemy_effects: list | None = None  # Эффекты от своего навыка, только для документации
 
     """
     tempo_stats: {
-        hp: [{value: 40, operation: plus, expired: 7}]
+        "Поле": [{"value": Значение, "operation": Операция, "expired": Раунд завершения эффекта}]
+        
+        "hp": [{"value": 40, "operation": "plus", "expired": 7}],
+        "strength": [{"value": 10, "operation": "minus", ""expired"": 3}],
+        "can_fight": [{"value": False, "operation": "replace", "expired": 4}]
     }
     """
 
@@ -63,6 +69,7 @@ class Character(BaseModel):
     can_be_revived: bool = False
     can_be_cursed: bool = True
     can_be_healed: bool = True
+    can_see_enemy_choose: bool = False
     class_id: Optional[str] = None
     potential_id: Optional[str] = None
     god_id: Optional[str] = None

@@ -31,7 +31,7 @@ class BladeStrikeSkill(ISkill):
                    round: int
                    ) -> SkillResult:
 
-        damage = int(player.strength * 0.20)  # проценты от силы
+        damage = damage_for_stats = int(player.strength * 0.20)  # проценты от силы
         enemy_hp_effects = sorted(enemy.tempo_stats.get('hp', {}), key=lambda x: x['expired'])
 
         for effect in enemy_hp_effects:
@@ -58,11 +58,14 @@ class BladeStrikeSkill(ISkill):
             last_hit = False
             texts = text.blade_strike_skill(player_name=player.name, enemy_name=enemy.name,
                                             player_short=player.short_texts, enemy_short=enemy.short_texts)
+
+        player.choice_enemy_effects = ([{'operation': 'minus', 'value': damage_for_stats}])
+
         return SkillResult(
             status=True,
             player_text=texts['player'],
             enemy_text=texts['enemy'],
-            enemy_stats=[f'-{damage} Здоровья'],
+            enemy_stats=[f'-{damage_for_stats} Здоровья'],
             last_hit=last_hit
         )
 

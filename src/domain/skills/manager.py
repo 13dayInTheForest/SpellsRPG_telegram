@@ -44,6 +44,7 @@ class SkillManager:
         if not skill:
             return ResultsDTO(status=False, text='В данный момент этот навык не доступен в игре >:(')
 
+        # Запустить проверку на то может ли игрок использовать этот навык
         check_result = await skill.check(player=player, enemy=enemy, history=history, round=round)
         if not check_result.status:
             return ResultsDTO(status=False, text=check_result.text)
@@ -152,63 +153,50 @@ class SkillManager:
                          ) -> RoundStatsResult | None:
         """ Если кто-нибудь даст ласт хит, то метод вернет RoundStatsResult """
         if user == 1:
-            u1_skill: Optional[ISkill] = skills_catalog.get(self.u1.current_choice, DoNothing)
-
-            if reflected:  # Если удар отражен
-                u1_result = await u1_skill.reflected(
-                    player=self.u1,
-                    enemy=self.u2,
-                    round=self.round,
-                    history=self.history
-                )
-            else:  # Обычное применение
-                u1_result = await u1_skill.move(
-                    player=self.u1,
-                    enemy=self.u2,
-                    round=self.round,
-                    history=self.history
-                )
-
-            if u1_result.last_hit:  # Если после этого скила противник лишился всего хп
-                return RoundStatsResult(
-                    u1_text=u1_result.player_text,
-                    u2_text=u1_result.enemy_text,
-                    last_hit=self.u1.telegram_id
-                )
-            # Распаковка текстов после навыка
-            u1['main'] += f'{u1_result.player_text}\n'
-            u1['stats'].extend(u1_result.player_stats)
-            u2['main'] += f'{u1_result.enemy_text}\n'
-            u2['stats'].extend(u1_result.enemy_stats)
-
-        elif user == 2:
-            u2_skill: Optional[ISkill] = skills_catalog.get(self.u2.current_choice, DoNothing)
-            if reflected:  # Если удар отражен
-                u2_result = await u2_skill.reflected(
-                    player=self.u2,
-                    enemy=self.u1,
-                    round=self.round,
-                    history=self.history
-                )
-            else:  # Обычное применение
-                u2_result = await u2_skill.move(
-                    player=self.u2,
-                    enemy=self.u1,
-                    round=self.round,
-                    history=self.history
-                )
-
-            if u2_result.last_hit:  # Если после этого скила противник лишился всего хп
-                return RoundStatsResult(
-                    u1_text=u2_result.enemy_text,
-                    u2_text=u2_result.player_text,
-                    last_hit=self.u1.telegram_id
-                )
-            # Распаковка текстов после навыка
-            u2['main'] += f'{u2_result.player_text}\n'
-            u2['stats'].extend(u2_result.player_stats)
-            u1['main'] += f'{u2_result.enemy_text}\n'
-            u1['stats'].extend(u2_result.enemy_stats)
-
+            player, enemy = self.u1, self.u2
+            player_stats, enemy_stats = u1, u2
         else:
-            raise Exception(f'{__name__} В {self.__do_skill.__name__} можно указывать только 1 или 2')
+            player, enemy = self.u2, self.u1
+            player_stats, enemy_stats = u2, u1
+
+        skill: Optional[ISkill] = skills_catalog.get(self.u1.current_choice, DoNothing)
+
+        if reflected:  # Если удар отражен
+            result = await skill.reflected(
+                player=player,
+                enemy=enemy,
+                round=self.round,
+                history=self.history
+            )
+        else:  # Обычное применение
+            result = await skill.move(
+                player=player,
+                enemy=enemy,
+                round=self.round,
+                history=self.history
+            )
+
+        if result.last_hit:  # Если после этого скила противник лишился всего хп
+            return RoundStatsResult(
+                u1_text=result.player_text if player is self.u1 else result.enemy_text,
+                u2_text=result.enemy_text if player is self.u1 else result.player_text,
+                winner=player.telegram_id
+            )
+
+        # Распаковка текстов после навыка
+        player_stats['main'] += f'{result.player_text}\n'
+        player_stats['stats'].extend(result.player_stats)
+        enemy_stats['main'] += f'{result.enemy_text}\n'
+        enemy_stats['stats'].extend(result.enemy_stats)
+
+    # Сохранение выбора в истории
+        self.history.extend(
+            [
+                {'user_id': self.u1.telegram_id,
+                 'choice': self.u1.current_choice,
+                 'choice_type': self.u1.current_choice_type,
+                 'enemy': self.u1.choice_enemy_effects,
+                 'self': self.u1.choice_self_effects
+                 }
+            ]
+        )

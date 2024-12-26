@@ -17,11 +17,11 @@ class PVPRoom(IRoom):
 
         self.round: int = 1  # Подсчет раундов
         self.moves_history: list[dict] = []  # история ходов, пример ниже
-        self.timer: Optional[asyncio.Task] = None
 
     """
     moves_history: [
-        {'user_id': str, 'move': str, 'self': ['-1 здоровье'], 'enemy': ['-18 силы', '-1 здоровья']}
+        {'user_id': str, 'choice': str, 'choice_type': str, 'enemy': [{'field': 'hp', 'operation': 'minus', 'value': 1242}]}
+        {'user_id': str, 'choice': str, choice_type': str, 'self': [{'field': 'hp', 'operation': 'plus', 'value': 2312}]}
     ]
     """
     async def move(self, player_id: str, move_text: str) -> ResultsDTO:
